@@ -1,2 +1,3 @@
 # levitate3D
-I guess I'm making a 3D renderer?
+
+I don't know just go and read [this website](https://learnopengl.com/)
