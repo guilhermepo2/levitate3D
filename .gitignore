@@ -1,0 +1,8 @@
+*.vs
+**/Debug/
+
+# todo: premake or something to generate vs sln files
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
