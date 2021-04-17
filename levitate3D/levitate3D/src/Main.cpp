@@ -24,22 +24,9 @@ void ProcessInput(GLFWwindow* window) {
 int main(void) {
 
 	glfwInit();
-
-	// the first argument of glfwWindowHint tells us what option we want to configure
-	//	the second argument sets the value of the option
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-	/*	
-		GLFWwindow* glfwCreateWindow (	
-		int 			width,
-		int 			height,
-		const char* 	title,
-		GLFWmonitor* 	monitor,
-		GLFWwindow*  	share 
-		)
-	*/
 	GLFWwindow* window = glfwCreateWindow(1024, 576, "GLFW Window", nullptr, nullptr);
 	if (window == nullptr) {
 		std::cout << "Failed to create GLFW window" << std::endl;
@@ -63,10 +50,10 @@ int main(void) {
 	Shader OurShader("./src/assets/vertex.glsl", "./src/assets/fragment.glsl");
 	float vertices[] = {
 		// positions          // colors           // texture coords
-		 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
-		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
-		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
-		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
+		 1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f,   // top right
+		 1.0f, -1.0f, 0.0f,   1.0f, 1.0f, 1.0f,   1.0f, 0.0f,   // bottom right
+		-1.0f, -1.0f, 0.0f,   1.0f, 1.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+		-1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f    // top left 
 	};
 
 	unsigned int indices[] = {
@@ -81,27 +68,18 @@ int main(void) {
 	int width, height, nrChannels;
 	unsigned char* data = stbi_load("./src/assets/doge.jpg", &width, &height, &nrChannels, 0);
 
-	unsigned int texture1, texture2;
-	glGenTextures(1, &texture1);
-	glGenTextures(1, &texture2);
+	unsigned int texture;
+	glGenTextures(1, &texture);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glBindTexture(GL_TEXTURE_2D, texture1);
+	glBindTexture(GL_TEXTURE_2D, texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	stbi_image_free(data);
-
-	unsigned char* data2 = stbi_load("./src/assets/awesomeface.png", &width, &height, &nrChannels, 0);
-	if (data2) {
-		glBindTexture(GL_TEXTURE_2D, texture2);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data2);
-		glGenerateMipmap(GL_TEXTURE_2D);
-		stbi_image_free(data2);
-	}
 
 	// vertex array object
 	unsigned int VAO;
@@ -132,8 +110,6 @@ int main(void) {
 
 	// ---------------------------------------
 	OurShader.Use();
-	OurShader.SetInt("texture1", 0);
-	OurShader.SetInt("texture2", 1);
 
 	while (!glfwWindowShouldClose(window)) {
 		// Processing Input
@@ -143,15 +119,13 @@ int main(void) {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glBindTexture(GL_TEXTURE_2D, texture1);
+		glBindTexture(GL_TEXTURE_2D, texture);
 		
 		OurShader.Use();
 		
 		//
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture1);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, texture2);
+		glBindTexture(GL_TEXTURE_2D, texture);
 
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
