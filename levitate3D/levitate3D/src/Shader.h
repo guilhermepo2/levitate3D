@@ -14,6 +14,9 @@ public:
 	void Use() { glUseProgram(ProgramID); }
 
 	// TODO: Bad code repetition here! templates are for this lol
+	template<typename T>
+	void Set(const std::string& Name, T value) const { glUniform1i(GlGetUniformLocation(ProgramID, Name.c_str()), Value); }
+
 	void SetBool(const std::string& Name, bool Value) const { glUniform1i(glGetUniformLocation(ProgramID, Name.c_str()), (int)Value); }
 	void SetInt(const std::string& Name, int Value) const { glUniform1i(glGetUniformLocation(ProgramID, Name.c_str()), Value); }
 	void SetFloat(const std::string& Name, float Value) const { glUniform1f(glGetUniformLocation(ProgramID, Name.c_str()), Value); }
