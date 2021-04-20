@@ -10,6 +10,10 @@
 
 #include <iostream>
 #include "Shader.h"
+#include "Camera.h"
+
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+
 
 glm::vec3 CameraPosition = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 CameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -17,8 +21,8 @@ glm::vec3 CameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 float Yaw = 0.0f;
 float Pitch = 0.0f;
+float LastX = 400, LastY = 300;
 bool FirstMouse = true;
-float fov = 45.0f;
 
 float DeltaTime = 0.0f;
 float LastFrame = 0.0f;
@@ -28,18 +32,18 @@ void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 }
 
 void ProcessInput(GLFWwindow* window) {
-	const float CameraSpeed = 2.5f * DeltaTime;
+
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-		CameraPosition += CameraSpeed * CameraFront;
+		camera.ProcessKeyboard(FORWARD, DeltaTime);
 	}
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-		CameraPosition -= CameraSpeed * CameraFront;
+		camera.ProcessKeyboard(BACKWARD, DeltaTime);
 	}
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-		CameraPosition -= glm::normalize(glm::cross(CameraFront, CameraUp)) * CameraSpeed;
+		camera.ProcessKeyboard(LEFT, DeltaTime);
 	}
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-		CameraPosition += glm::normalize(glm::cross(CameraFront, CameraUp)) * CameraSpeed;
+		camera.ProcessKeyboard(RIGHT, DeltaTime);
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -47,7 +51,6 @@ void ProcessInput(GLFWwindow* window) {
 	}
 }
 
-float LastX = 400, LastY = 300;
 void MouseCallback(GLFWwindow* window, double xpos, double ypos) {
 	if (FirstMouse) {
 		LastX = xpos;
@@ -60,36 +63,11 @@ void MouseCallback(GLFWwindow* window, double xpos, double ypos) {
 	LastX = xpos;
 	LastY = ypos;
 
-	const float Sensivity = 0.1f;
-	xOffset *= Sensivity;
-	yOffset *= Sensivity;
-
-	Yaw += xOffset;
-	Pitch += yOffset;
-
-	if (Pitch > 89.0f) {
-		Pitch = 89.0f;
-	}
-	if (Pitch < -89.0f) {
-		Pitch = -89.0f;
-	}
-
-	glm::vec3 direction;
-	direction.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-	direction.y = sin(glm::radians(Pitch));
-	direction.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-	CameraFront = glm::normalize(direction);
-
+	camera.ProcessMouseMovement(xOffset, yOffset);
 }
 
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-	fov -= (float)yoffset;
-	if (fov < 1.0f) {
-		fov = 1.0f;
-	}
-	if (fov > 45.0f) {
-		fov = 45.0f;
-	}
+	camera.ProcessMouseScroll(yoffset);
 }
 
 int main(void) {
@@ -198,22 +176,9 @@ int main(void) {
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // copies data to the buffer
 
-	// EBO
-	/*
-	unsigned int EBO;
-	glGenBuffers(1, &EBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-	*/
-
 	// position attribute
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-	// color attribute
-	/*
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-	*/
 	// texture coords
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
@@ -228,7 +193,6 @@ int main(void) {
 		DeltaTime = CurrentFrame - LastFrame;
 		LastFrame = CurrentFrame;
 
-		// Processing Input
 		ProcessInput(window);
 
 		// Rendering
@@ -239,16 +203,12 @@ int main(void) {
 		
 		OurShader.Use();
 
-		// ---------------------------------------
-		// math stuff
-		// Remember that the actual transformation order should be read in reverse: even though in code we first translate and then later rotate, the actual transformations first apply a rotation and then a translation.
-		
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
 		glm::mat4 view;
-		view = glm::lookAt(CameraPosition, CameraPosition + CameraFront, CameraUp);
+		view = camera.GetViewMatrix();
 		glm::mat4 projection;
-		projection = glm::perspective(glm::radians(fov), 800.0f / 600.0f, 0.1f, 100.0f);
+		projection = glm::perspective(glm::radians(camera.Zoom), 800.0f / 600.0f, 0.1f, 100.0f);
 
 		unsigned int ModelLocation = glGetUniformLocation(OurShader.ProgramID, "model");
 		glUniformMatrix4fv(ModelLocation, 1, GL_FALSE, glm::value_ptr(model));
@@ -264,17 +224,13 @@ int main(void) {
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
-		// glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-
-		// Calling events and swaping buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
-	// glDeleteBuffers(1, &EBO);
 
 	glfwTerminate();
 	return 0;
