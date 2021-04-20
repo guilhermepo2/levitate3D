@@ -11,10 +11,6 @@
 #include <iostream>
 #include "Shader.h"
 
-const char* vertexShaderSource = "#version 330 core\nlayout (location = 0) in vec3 aPos;\nlayout (location = 1) in vec3 aColor;\nout vec3 ourColor;\nvoid main()\n{\ngl_Position = vec4(aPos, 1.0);\nourColor = aColor;\n}\0";
-
-const char* fragmentShaderSource = "#version 330 core\nout vec4 FragColor;\nin vec3 ourColor;\nvoid main()\n{\nFragColor = vec4(ourColor, 1.0f);\n}\0";
-
 void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
