@@ -11,13 +11,84 @@
 #include <iostream>
 #include "Shader.h"
 
+glm::vec3 CameraPosition = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 CameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 CameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+float Yaw = 0.0f;
+float Pitch = 0.0f;
+bool FirstMouse = true;
+float fov = 45.0f;
+
+float DeltaTime = 0.0f;
+float LastFrame = 0.0f;
+
 void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
 
 void ProcessInput(GLFWwindow* window) {
+	const float CameraSpeed = 2.5f * DeltaTime;
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+		CameraPosition += CameraSpeed * CameraFront;
+	}
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+		CameraPosition -= CameraSpeed * CameraFront;
+	}
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+		CameraPosition -= glm::normalize(glm::cross(CameraFront, CameraUp)) * CameraSpeed;
+	}
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+		CameraPosition += glm::normalize(glm::cross(CameraFront, CameraUp)) * CameraSpeed;
+	}
+
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
+	}
+}
+
+float LastX = 400, LastY = 300;
+void MouseCallback(GLFWwindow* window, double xpos, double ypos) {
+	if (FirstMouse) {
+		LastX = xpos;
+		LastY = ypos;
+		FirstMouse = false;
+	}
+
+	float xOffset = xpos - LastX;
+	float yOffset = LastY - ypos;
+	LastX = xpos;
+	LastY = ypos;
+
+	const float Sensivity = 0.1f;
+	xOffset *= Sensivity;
+	yOffset *= Sensivity;
+
+	Yaw += xOffset;
+	Pitch += yOffset;
+
+	if (Pitch > 89.0f) {
+		Pitch = 89.0f;
+	}
+	if (Pitch < -89.0f) {
+		Pitch = -89.0f;
+	}
+
+	glm::vec3 direction;
+	direction.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+	direction.y = sin(glm::radians(Pitch));
+	direction.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+	CameraFront = glm::normalize(direction);
+
+}
+
+void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+	fov -= (float)yoffset;
+	if (fov < 1.0f) {
+		fov = 1.0f;
+	}
+	if (fov > 45.0f) {
+		fov = 45.0f;
 	}
 }
 
@@ -27,7 +98,7 @@ int main(void) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	GLFWwindow* window = glfwCreateWindow(1024, 576, "GLFW Window", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow(800, 600, "GLFW Window", nullptr, nullptr);
 	if (window == nullptr) {
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
@@ -43,7 +114,10 @@ int main(void) {
 
 	// telling opengl the size of the rendering window (?!)
 	glViewport(0, 0, 800, 600);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetFramebufferSizeCallback(window, FramebufferSizeCallback);
+	glfwSetCursorPosCallback(window, MouseCallback);
+	glfwSetScrollCallback(window, ScrollCallback);
 	glEnable(GL_DEPTH_TEST);
 
 	//
@@ -148,6 +222,12 @@ int main(void) {
 	OurShader.Use();
 
 	while (!glfwWindowShouldClose(window)) {
+
+		// Delta Time
+		float CurrentFrame = glfwGetTime();
+		DeltaTime = CurrentFrame - LastFrame;
+		LastFrame = CurrentFrame;
+
 		// Processing Input
 		ProcessInput(window);
 
@@ -162,12 +242,13 @@ int main(void) {
 		// ---------------------------------------
 		// math stuff
 		// Remember that the actual transformation order should be read in reverse: even though in code we first translate and then later rotate, the actual transformations first apply a rotation and then a translation.
+		
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-		glm::mat4 view = glm::mat4(1.0f);
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -5.0f));
+		glm::mat4 view;
+		view = glm::lookAt(CameraPosition, CameraPosition + CameraFront, CameraUp);
 		glm::mat4 projection;
-		projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+		projection = glm::perspective(glm::radians(fov), 800.0f / 600.0f, 0.1f, 100.0f);
 
 		unsigned int ModelLocation = glGetUniformLocation(OurShader.ProgramID, "model");
 		glUniformMatrix4fv(ModelLocation, 1, GL_FALSE, glm::value_ptr(model));
