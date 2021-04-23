@@ -21,8 +21,12 @@ public:
 	void SetInt(const std::string& Name, int Value) const { glUniform1i(glGetUniformLocation(ProgramID, Name.c_str()), Value); }
 	void SetFloat(const std::string& Name, float Value) const { glUniform1f(glGetUniformLocation(ProgramID, Name.c_str()), Value); }
 
-	void SetVec3(const std::string& Name, float x, float y, float z) {
+	void SetVec3(const std::string& Name, float x, float y, float z) const {
 		glUniform3f(glGetUniformLocation(ProgramID, Name.c_str()), x, y, z);
+	}
+
+	void SetMat4(const std::string& Name, const glm::mat4& mat) const {
+		glUniformMatrix4fv(glGetUniformLocation(ProgramID, Name.c_str()), 1, GL_FALSE, &mat[0][0]);
 	}
 };
 
