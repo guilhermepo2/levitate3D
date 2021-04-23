@@ -20,6 +20,10 @@ public:
 	void SetBool(const std::string& Name, bool Value) const { glUniform1i(glGetUniformLocation(ProgramID, Name.c_str()), (int)Value); }
 	void SetInt(const std::string& Name, int Value) const { glUniform1i(glGetUniformLocation(ProgramID, Name.c_str()), Value); }
 	void SetFloat(const std::string& Name, float Value) const { glUniform1f(glGetUniformLocation(ProgramID, Name.c_str()), Value); }
+
+	void SetVec3(const std::string& Name, float x, float y, float z) {
+		glUniform3f(glGetUniformLocation(ProgramID, Name.c_str()), x, y, z);
+	}
 };
 
 Shader::Shader(const char* VertexPath, const char* FragmentPath) {
