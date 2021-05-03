@@ -1,6 +1,10 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -14,11 +18,20 @@
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
-
 glm::vec3 CameraPosition = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 CameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 CameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
+ImVec4 light_ambient = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+ImVec4 light_diffuse = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
+ImVec4 light_specular = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+ImVec4 material_ambient = ImVec4(1.0f, 0.5f, 0.31f, 1.0f);
+ImVec4 material_diffuse = ImVec4(1.0f, 0.5f, 0.31f, 1.0f);
+ImVec4 material_specular = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
+float material_shininess = 32.0f;
+
 
 float Yaw = 0.0f;
 float Pitch = 0.0f;
@@ -33,18 +46,27 @@ void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 }
 
 void ProcessInput(GLFWwindow* window) {
+	if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED) {
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+			camera.ProcessKeyboard(FORWARD, DeltaTime);
+		}
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+			camera.ProcessKeyboard(BACKWARD, DeltaTime);
+		}
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+			camera.ProcessKeyboard(LEFT, DeltaTime);
+		}
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+			camera.ProcessKeyboard(RIGHT, DeltaTime);
+		}
+	}
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-		camera.ProcessKeyboard(FORWARD, DeltaTime);
+	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS) {
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	}
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-		camera.ProcessKeyboard(BACKWARD, DeltaTime);
-	}
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-		camera.ProcessKeyboard(LEFT, DeltaTime);
-	}
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-		camera.ProcessKeyboard(RIGHT, DeltaTime);
+
+	if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) {
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -64,7 +86,10 @@ void MouseCallback(GLFWwindow* window, double xpos, double ypos) {
 	LastX = xpos;
 	LastY = ypos;
 
-	camera.ProcessMouseMovement(xOffset, yOffset);
+
+	if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED) {
+		camera.ProcessMouseMovement(xOffset, yOffset);
+	}
 }
 
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
@@ -93,13 +118,19 @@ int main(void) {
 
 	// telling opengl the size of the rendering window (?!)
 	glViewport(0, 0, 800, 600);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetFramebufferSizeCallback(window, FramebufferSizeCallback);
 	glfwSetCursorPosCallback(window, MouseCallback);
 	glfwSetScrollCallback(window, ScrollCallback);
 	glEnable(GL_DEPTH_TEST);
 
-	//
+	// Initializing IMGUI
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::StyleColorsDark();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	const char* glsl_version = "#version 330 core";
+	ImGui_ImplOpenGL3_Init(glsl_version);
 
 	Shader OurShader("./src/assets/vertex.glsl", "./src/assets/fragment.glsl");
 	Shader lightShader("./src/assets/lightvertex.glsl", "./src/assets/lightfragment.glsl");
@@ -181,9 +212,14 @@ int main(void) {
 		DeltaTime = CurrentFrame - LastFrame;
 		LastFrame = CurrentFrame;
 
+		glfwPollEvents();
 		ProcessInput(window);
 
-		// Rendering
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		// Rendering		
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
@@ -191,14 +227,14 @@ int main(void) {
 		OurShader.SetVec3("viewPosition", camera.Position.x, camera.Position.y, camera.Position.z);
 		OurShader.SetVec3("light.position", lightPos.x, lightPos.y, lightPos.z);
 
-		OurShader.SetVec3("light.ambient", 0.2f, 0.2f, 0.2f);
-		OurShader.SetVec3("light.diffuse", 0.5f, 0.5f, 0.5f); // darken diffuse light a bit
-		OurShader.SetVec3("light.specular", 1.0f, 1.0f, 1.0f);
+		OurShader.SetVec3("light.ambient", light_ambient.x, light_ambient.y, light_ambient.z);
+		OurShader.SetVec3("light.diffuse", light_diffuse.x, light_diffuse.y, light_diffuse.z); // darken diffuse light a bit
+		OurShader.SetVec3("light.specular", light_specular.x, light_specular.y, light_specular.z);
 
-		OurShader.SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-		OurShader.SetVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
-		OurShader.SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
-		OurShader.SetFloat("material.shininess", 32.0f);
+		OurShader.SetVec3("material.ambient", material_ambient.x, material_ambient.y, material_ambient.z);
+		OurShader.SetVec3("material.diffuse", material_diffuse.x, material_diffuse.y, material_diffuse.z);
+		OurShader.SetVec3("material.specular", material_specular.x, material_specular.y, material_specular.z);
+		OurShader.SetFloat("material.shininess", material_shininess);
 
 		glm::mat4 model = glm::mat4(1.0f);
 		glm::mat4 view;
@@ -228,11 +264,26 @@ int main(void) {
 
 		glBindVertexArray(lightVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
-		
 
+		{
+			ImGui::ColorEdit3("light ambient", (float*)&light_ambient);
+			ImGui::ColorEdit3("light diffuse", (float*)&light_diffuse);
+			ImGui::ColorEdit3("light specular", (float*)&light_specular);
+
+			ImGui::ColorEdit3("material ambient", (float*)&material_ambient);
+			ImGui::ColorEdit3("material diffuse", (float*)&material_diffuse);
+			ImGui::ColorEdit3("material specular", (float*)&material_specular);
+			ImGui::SliderFloat("material shininess", &material_shininess, 0.0f, 100.0f);
+		}
+
+		ImGui::Render();
+		int display_w, display_h;
+		glfwGetFramebufferSize(window, &display_w, &display_h);
+		glViewport(0, 0, display_w, display_h);
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		glfwSwapBuffers(window);
-		glfwPollEvents();
+		
 	}
 
 	glDeleteVertexArrays(1, &lightVAO);
