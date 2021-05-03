@@ -188,10 +188,17 @@ int main(void) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		OurShader.Use();
-		OurShader.SetVec3("objectColor", 1.0f, 0.5f, 0.31f);
-		OurShader.SetVec3("lightColor", 1.0f, 1.0f, 1.0f);
-		OurShader.SetVec3("lightPosition", lightPos.x, lightPos.y, lightPos.z);
 		OurShader.SetVec3("viewPosition", camera.Position.x, camera.Position.y, camera.Position.z);
+		OurShader.SetVec3("light.position", lightPos.x, lightPos.y, lightPos.z);
+
+		OurShader.SetVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+		OurShader.SetVec3("light.diffuse", 0.5f, 0.5f, 0.5f); // darken diffuse light a bit
+		OurShader.SetVec3("light.specular", 1.0f, 1.0f, 1.0f);
+
+		OurShader.SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+		OurShader.SetVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+		OurShader.SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
+		OurShader.SetFloat("material.shininess", 32.0f);
 
 		glm::mat4 model = glm::mat4(1.0f);
 		glm::mat4 view;
