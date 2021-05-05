@@ -27,7 +27,6 @@ ImVec4 light_ambient = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
 ImVec4 light_diffuse = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
 ImVec4 light_specular = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-ImVec4 material_diffuse = ImVec4(1.0f, 0.5f, 0.31f, 1.0f);
 float material_shininess = 32.0f;
 
 unsigned int loadTexture(const char* path);
@@ -195,8 +194,8 @@ int main(void) {
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 	glEnableVertexAttribArray(2);
 
-	unsigned int diffuseMap = loadTexture("./src/assets/container2.png");
-	unsigned int specularMap = loadTexture("./src/assets/container2_specular.png");
+	unsigned int diffuseMap = loadTexture("./src/assets/doge.jpg");
+	unsigned int specularMap = loadTexture("./src/assets/doge.jpg");
 
 	// light stuff
 	unsigned int lightVAO;
@@ -239,7 +238,6 @@ int main(void) {
 		OurShader.SetVec3("light.diffuse", light_diffuse.x, light_diffuse.y, light_diffuse.z); // darken diffuse light a bit
 		OurShader.SetVec3("light.specular", light_specular.x, light_specular.y, light_specular.z);
 
-		OurShader.SetVec3("material.diffuse", material_diffuse.x, material_diffuse.y, material_diffuse.z);
 		OurShader.SetFloat("material.shininess", material_shininess);
 
 		glm::mat4 model = glm::mat4(1.0f);
@@ -282,8 +280,6 @@ int main(void) {
 			ImGui::ColorEdit3("light ambient", (float*)&light_ambient);
 			ImGui::ColorEdit3("light diffuse", (float*)&light_diffuse);
 			ImGui::ColorEdit3("light specular", (float*)&light_specular);
-
-			ImGui::ColorEdit3("material diffuse", (float*)&material_diffuse);
 			ImGui::SliderFloat("material shininess", &material_shininess, 0.0f, 100.0f);
 		}
 
