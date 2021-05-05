@@ -28,7 +28,6 @@ ImVec4 light_diffuse = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
 ImVec4 light_specular = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 ImVec4 material_diffuse = ImVec4(1.0f, 0.5f, 0.31f, 1.0f);
-ImVec4 material_specular = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
 float material_shininess = 32.0f;
 
 unsigned int loadTexture(const char* path);
@@ -197,6 +196,7 @@ int main(void) {
 	glEnableVertexAttribArray(2);
 
 	unsigned int diffuseMap = loadTexture("./src/assets/container2.png");
+	unsigned int specularMap = loadTexture("./src/assets/container2_specular.png");
 
 	// light stuff
 	unsigned int lightVAO;
@@ -230,6 +230,8 @@ int main(void) {
 		
 		OurShader.Use();
 		OurShader.SetInt("material.diffuse", 0);
+		OurShader.SetInt("material.specular", 1);
+
 		OurShader.SetVec3("viewPosition", camera.Position.x, camera.Position.y, camera.Position.z);
 		OurShader.SetVec3("light.position", lightPos.x, lightPos.y, lightPos.z);
 
@@ -238,7 +240,6 @@ int main(void) {
 		OurShader.SetVec3("light.specular", light_specular.x, light_specular.y, light_specular.z);
 
 		OurShader.SetVec3("material.diffuse", material_diffuse.x, material_diffuse.y, material_diffuse.z);
-		OurShader.SetVec3("material.specular", material_specular.x, material_specular.y, material_specular.z);
 		OurShader.SetFloat("material.shininess", material_shininess);
 
 		glm::mat4 model = glm::mat4(1.0f);
@@ -254,6 +255,9 @@ int main(void) {
 		// bind diffuse map
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, diffuseMap);
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, specularMap);
 
 		glBindVertexArray(cubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -280,7 +284,6 @@ int main(void) {
 			ImGui::ColorEdit3("light specular", (float*)&light_specular);
 
 			ImGui::ColorEdit3("material diffuse", (float*)&material_diffuse);
-			ImGui::ColorEdit3("material specular", (float*)&material_specular);
 			ImGui::SliderFloat("material shininess", &material_shininess, 0.0f, 100.0f);
 		}
 
