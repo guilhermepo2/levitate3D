@@ -1,7 +1,8 @@
 *.vs
 **/Debug/
+levitate3D/levitate3D/bin/
+levitate3D/levitate3D/binobj/
 
-# todo: premake or something to generate vs sln files
 *.sln
 *.vcxproj
 *.vcxproj.filters
